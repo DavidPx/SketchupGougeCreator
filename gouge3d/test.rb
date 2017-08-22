@@ -71,7 +71,7 @@ module Deciducraft
 
         # Remove the profile curve with a U-shaped arc subtracted from the gouge body
         profileGroup = model.active_entities.add_group
-        wingRadius = 1.5
+        wingRadius = 1.5625
         wingLength = 1.0
 
         fluteDepth = d - b
@@ -84,7 +84,7 @@ module Deciducraft
         angleC = Math.acos(s / wingRadius / 2.0)
         angleB = Math::PI/2.0 - (angleC - angleD)
         angleE = Math::PI/2.0 - angleB
-        angleA = Math::PI/2.0 - angleC
+        angleA = (Math::PI/2.0 - angleC) * 2
         angleF = angleA + angleE
         lengthQ = Math.sin(angleF) * wingRadius
         lengthT = Math.cos(angleF) * wingRadius
@@ -102,26 +102,25 @@ module Deciducraft
         puts "r - b: #{r - b}"
         puts "r - b + lengthT: #{r - b + lengthT}"
 
-        profileCenterPoint = Geom::Point3d.new(GougeLength - lengthQ, 0, (r - b + lengthT) * -1.0)
+        profileCenterPoint = Geom::Point3d.new(GougeLength - lengthQ, 3, (r - b + lengthT) * -1.0)
         profileVector = Geom::Vector3d.new 0,1,0
         profileVector3 = profileVector.normalize! # this is the vector normal to the arc's surface
         profileVector2 = Geom::Vector3d.new 1,0,0 # this factor defines in what plane the arc will lie
 
-        profileEdges = profileGroup.entities.add_arc profileCenterPoint, profileVector2, profileVector3, wingRadius, 0, -Math::PI/2.0, 15
-        #arcEdges.first.find_face
-
-        # orientationVector = Geom::Vector3d.new(1, 0, 0)
-        # orientationVector.length = 1
-
-        # circleEdges = entities.add_circle(centerPoint, orientationVector, d/2.0, 50)
-        # circleFace = entities.add_face(circleEdges)
+        profileEdges = profileGroup.entities.add_arc profileCenterPoint, profileVector2, profileVector3, wingRadius, 0, -Math::PI/2, 40
         
+        # offset the arc so that we can begin to make a solid
+        outerProfileEdges = profileGroup.entities.add_arc profileCenterPoint, profileVector2, profileVector3, wingRadius + 1, 0, -Math::PI/2, 40
+        
+        # connect their two ends and find faces to make a plane; then push/pull to make a solid
+        profileGroup.entities.add_line profileEdges.first.start.position, outerProfileEdges.first.start.position
+        profileGroup.entities.add_line profileEdges.last.end.position, outerProfileEdges.last.end.position
+        profileEdges.first.find_faces()
+        profileEdges.first.faces.first.pushpull(6)
 
-        # # intersect the arc and circle
-        # tr = Geom::Transformation.new()
-        # entities.intersect_with false, tr, entities, tr, true, entities.to_a
-
-        #circleFace.pushpull(8)
+        # subtract our new arc-shape from the gouge
+        profileGroup.subtract(group)
+        
 
         model.commit_operation
     end
