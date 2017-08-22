@@ -1,29 +1,26 @@
 require 'sketchup.rb'
+# todo: change these to require
+load File.join(__dir__, 'parameters.rb')
+load File.join(__dir__, 'gouge.rb')
 module Deciducraft
     module Gouge3D
         def self.create_model
 
+            parameters = Parameters.new
+
+            if (parameters.cancelled)
+                return
+            end
+
             model = Sketchup.active_model
 
-            model.start_operation('Create Gouge', true)
-
-            group = model.active_entities.add_group
-            entities = group.entities
-
-
-            cubePoints = [
-                Geom::Point3d.new(0,0,0),
-                Geom::Point3d.new(4,0,0),
-                Geom::Point3d.new(4,4,0),
-                Geom::Point3d.new(0,4,0)
-            ]
-
-            cubeFace = entities.add_face(cubePoints)
-
-            cubeFace.pushpull(-4)
+            gouge = Gouge.new
+            gouge.addToModel(model, parameters)
 
             model.commit_operation
         end
+
+        self.create_model # todo: remove this
 
         unless file_loaded?(__FILE__)
             puts "Creating menu.."
